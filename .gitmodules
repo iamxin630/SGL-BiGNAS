@@ -1,0 +1,3 @@
+[submodule "SGL-BiGNAS"]
+	path = SGL-BiGNAS
+	url = https://github.com/iamxin630/SGL-BiGNAS.git
