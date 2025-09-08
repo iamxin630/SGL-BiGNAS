@@ -155,6 +155,8 @@ def init_bignas_source_from_sgl(
     for p in model.source_item_embedding.parameters():
         p.requires_grad = False
     # 若也想凍 user：取消下面註解
+    # 凍結 user embedding：保留 SGL 知識，遷移更穩定但適應性較差。
+    # 不凍結 user embedding：適應新任務更快，但 SGL 知識容易流失。
     # for p in model.user_embedding.parameters():
     #     p.requires_grad = False
 

@@ -332,7 +332,7 @@ class SGL(AbstractRecommender):
             buf = '\t'.join([("%.4f" % x).ljust(12) for x in self.best_result])
         self.logger.info("\t\t%s" % buf)
     
-        # ★ 在這裡統一匯出「傳播後」的最終向量
+        # 在這裡統一匯出「傳播後」的最終向量
         try:
             out_dir = self.export_final_embeddings(out_dir=self.save_dir)
             self.logger.info(f"export_final_embeddings done: {out_dir}")

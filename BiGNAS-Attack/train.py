@@ -298,6 +298,10 @@ def _get_user_embedding_table(model):
 
 
 def cross_domain_align_loss(model, num_users, align_weight=1e-2, detach_source=True, device=None):
+    # 讓 BiGNAS 的 user embedding 盡量「貼近」SGL 的 user embedding（anchor），避免知識遷移時 embedding 被洗掉太快
+    # 計算目前 BiGNAS 的 user embedding（E_now）和 SGL 的 user anchor（E_src）之間的 L2 距離（均方誤差）。
+    # 公式：align_weight * MSE(E_now, E_src)
+    # 這個損失會加到總 loss 裡，強迫 BiGNAS 的 user embedding 不要偏離 SGL anchor 太遠。
     idx = torch.arange(num_users, device=device)
     E_now = model.user_embedding(idx)
     if hasattr(model, "_sgl_user_anchor"):
@@ -421,11 +425,31 @@ def train(model, perceptor, data, args):
             E_s_u_np=E_s_u,
             E_s_i_np=E_s_i,
             device=device,
-            freeze_steps=getattr(args, "freeze_src_steps", 1000),
+            freeze_steps=getattr(args, "freeze_src_steps", 1000), #設 freeze_steps，暫時凍結 embedding，訓練到一定步數才解凍
             # 若未做 raw id 對齊，下面兩個先不傳，或傳 None
             # user_index_map=...,
             # source_item_index_map=...,
         )
+
+        # === 新增：初始化 target_item_embedding ===
+        if hasattr(args, "target_item_embedding_path") and args.target_item_embedding_path:
+            logging.info(f"Loading target_item_embedding from {args.target_item_embedding_path}")
+            E_t_i = np.load(args.target_item_embedding_path)
+
+            # 確保 target_item_embedding 的維度與 user_embedding 一致
+            embedding_dim = model.user_embedding.embedding_dim  # 獲取 user_embedding 的嵌入維度
+            if E_t_i.shape[1] != embedding_dim:
+                logging.warning(
+                    f"Target item embedding dimension ({E_t_i.shape[1]}) does not match user embedding dimension ({embedding_dim}). Resizing."
+                )
+                E_t_i = np.resize(E_t_i, (E_t_i.shape[0], embedding_dim))  # 調整維度
+
+            model.target_item_embedding = nn.Embedding.from_pretrained(
+                torch.tensor(E_t_i, dtype=torch.float32).to(args.device),  # 確保初始化時移動到正確設備
+                freeze=False,
+            )
+            logging.info(f"✅ Initialized target_item_embedding: shape={E_t_i.shape}")
+
     data.target_test_link = target_test_link
 
     source_set_size = source_link.shape[1]

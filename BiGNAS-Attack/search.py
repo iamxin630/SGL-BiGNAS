@@ -135,6 +135,14 @@ if __name__ == "__main__":
 
     # 新增 source_item_top_ratio 超參數
     parser.add_argument('--source-item-top-ratio', type=float, default=0.1)
-
+    
+    # 新增target_embedding向量
+    parser.add_argument(
+        "--target-item-embedding-path",
+        type=str,
+        default=None,
+        help="Path to the pre-trained target item embedding (npy file)."
+    )
+    
     args = parser.parse_args()
     search(args)

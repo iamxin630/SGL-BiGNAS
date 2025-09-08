@@ -89,23 +89,10 @@ def set_seed(seed):
 
 
 def load_model(args):
-    device = getattr(args, "device", "cpu")
-    model = Model(args).to(device)
-
-    # 讀取 checkpoint（用 CPU 載入較安全，之後再搬到目標 device）
-    ckpt = torch.load(args.model_path, map_location="cpu", weights_only=True)
-
-    # 清掉舊 run 存進去、不該進 state_dict 的臨時/錨點鍵
-    # 目前你的專案會用到 _sgl_user_anchor；未來若再加臨時 buffer，統一用 _sgl_ 前綴，就會被下面邏輯一併清掉
-    for k in list(ckpt.keys()):
-        if k.startswith("_sgl_"):
-            ckpt.pop(k, None)
-
-    # 寬鬆載入，避免少量不影響推論/訓練的差異造成報錯
+    model = Model(args)
+    ckpt = torch.load(args.model_path, map_location="cpu")
+    # 移除 target_item_embedding.weight，避免 shape 不符
+    if "target_item_embedding.weight" in ckpt:
+        del ckpt["target_item_embedding.weight"]
     load_info = model.load_state_dict(ckpt, strict=False)
-    logging.info(
-        f"load_state_dict: missing={load_info.missing_keys}, unexpected={load_info.unexpected_keys}"
-    )
-
-    model.to(device)
     return model

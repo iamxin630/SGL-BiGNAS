@@ -67,8 +67,9 @@ class Model(nn.Module):
         source_x = torch.cat(
             [self.user_embedding.weight, self.source_item_embedding.weight], dim=0
         )
+        device = self.user_embedding.weight.device
         target_x = torch.cat(
-            [self.user_embedding.weight, self.target_item_embedding.weight], dim=0
+            [self.user_embedding.weight, self.target_item_embedding.weight.to(device),], dim=0
         )
 
         source_embs = [source_x]
